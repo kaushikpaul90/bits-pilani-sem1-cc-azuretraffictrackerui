@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traffic Monitoring</title>
+    <script
+        src="https://atlas.microsoft.com/sdk/javascript/mapcontrol/2/atlas.min.js?api-version=2.0&subscription-key=EWTEjHGbbAg00mgtgcTc6EDqmaPnSsIW5RN7LahFJyo4METm7kqFJQQJ99AJACYeBjF7AiTOAAAgAZMP3spO"></script>
+    <link rel="stylesheet" href="https://atlas.microsoft.com/sdk/javascript/mapcontrol/2/atlas.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 80vh;
+            margin: 0;
+            background: url("{{ url_for('static', filename='traffic.jpg') }}") no-repeat center center fixed;
+            background-size: cover;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px 40px 20px 40px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            max-width: 700px;
+            width: calc(100% - 40px);
+            /* Adjusting for padding */
+            margin: 20px;
+            box-sizing: border-box;
+            backdrop-filter: blur(3px);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin: 20px 0;
+        }
+
+        label,
+        input[type="text"],
+        input[type="submit"] {
+            display: block;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        label {
+            color: #555;
+        }
+
+        input[type="text"] {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        input[type="submit"] {
+            padding: 10px;
+            background-color: #007bff;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 15px;
+            margin-bottom: 20px;
+        }
+
+        input[type="submit"]:hover {
+            background-color: #0056b3;
+        }
+
+        .suggestions {
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            max-height: 330px;
+            overflow-y: auto;
+            background: #fff;
+            position: absolute;
+            z-index: 1000;
+            /* width: calc(100% - 40px); */
+        }
+
+        .suggestion-item {
+            padding: 8px;
+            cursor: pointer;
+        }
+
+        .suggestion-item:hover {
+            background-color: #f0f0f0;
+        }
+
+        .highlight {
+            background-color: #e0e0e0;
+        }
+
+        .spinner {
+            display: none;
+            /* Hidden by default */
+            border: 8px solid #f3f3f3;
+            /* Light grey */
+            border-top: 8px solid #3498db;
+            /* Blue */
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 2s linear infinite;
+            position: fixed;
+            /* Position relative to the viewport */
+            top: 38%;
+            /* left: 45%; */
+            transform: translate(-50%, -50%);
+            z-index: 1001;
+            /* Ensure spinner is on top */
+        }
+
+        .overlay {
+            display: none;
+            /* Hidden by default */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.7);
+            /* Semi-transparent background */
+            backdrop-filter: blur(1px);
+            /* Apply blur effect */
+            z-index: 1000;
+            /* Ensure overlay is behind the spinner but above other content */
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Add styles for the modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 50%;
+            bottom: 20px;
+            transform: translateX(-50%);
+            width: 80%;
+            max-width: 400px;
+            background-color: #d4edda;
+            /* Light green background */
+            border: 1px solid #888;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            padding: 7px;
+            border-radius: 8px;
+        }
+
+        .modal-content {
+            margin: 0;
+            padding: 0;
+            position: relative;
+        }
+
+        pre {
+            text-align: center;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .top-right {
+            position: absolute;
+            top: 28px;
+            right: 20px;
+            font-size: 16px;
+            color: #ffffff;
+        }
+
+        .top-right a {
+            text-decoration: none;
+            margin-left: 10px;
+            color: #ffffff;
+        }
+
+        .top-right a:hover {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="overlay" id="overlay"></div>
+    <div class="spinner" id="spinner"></div>
+    <div class="top-right">
+        <a id="logout">Logout</a>
+    </div>
+    <div class="container">
+        <h1><u>Traffic Monitoring</u></h1>
+        <form id="trafficForm">
+            <label for="from_location">From Location</label>
+            <input type="text" id="from_location" name="from_location" required>
+            <div id="from_suggestions" class="suggestions"></div>
+            <label for="to_location">To Location</label>
+            <input type="text" id="to_location" name="to_location" required>
+            <div id="to_suggestions" class="suggestions"></div>
+            <input type="hidden" id="email" value="{{ email }}">
+            <input id="submit_button" type="submit" value="Submit">
+        </form>
+    </div>
+
+    <!-- The Modal -->
+    <div id="resultModal" class="modal">
+        <div class="modal-content">
+            <pre id="resultContent">×</pre>
+        </div>
+    </div>
+
+    <script>
+        // const subscriptionKey = 'EWTEjHGbbAg00mgtgcTc6EDqmaPnSsIW5RN7LahFJyo4METm7kqFJQQJ99AJACYeBjF7AiTOAAAgAZMP3spO';
+        
+        function setupAutosuggest(inputId, suggestionsId) {
+            const input = document.getElementById(inputId);
+            const suggestionsContainer = document.getElementById(suggestionsId);
+            let currentIndex = -1;
+
+            input.addEventListener('input', function () {
+            if (input.value.length > 2) {
+                fetch('/get-api-key')
+                    .then(response => response.json())
+                    .then(data => {
+                        const api_access_key = data.api_access_key;
+                        fetch(`https://atlas.microsoft.com/search/address/json?api-version=1.0&query=${input.value}&subscription-key=${api_access_key}`)
+                            .then(response => response.json())
+                            .then(data => {
+                                const suggestions = data.results.map(result => result.address.freeformAddress);
+                                suggestionsContainer.innerHTML = '';
+                                suggestions.forEach((suggestion, index) => {
+                                    const div = document.createElement('div');
+                                    div.className = 'suggestion-item';
+                                    div.textContent = suggestion;
+                                    div.addEventListener('click', () => {
+                                        input.value = suggestion;
+                                        suggestionsContainer.innerHTML = '';
+                                    });
+                                    suggestionsContainer.appendChild(div);
+                                });
+                                currentIndex = -1; // Reset index when new suggestions are loaded
+                            })
+                            .catch(error => {
+                                console.error('Error fetching suggestions:', error);
+                            });
+                    })
+                    .catch(error => {
+                        console.error('Error fetching API key:', error);
+                    });
+            } else {
+                suggestionsContainer.innerHTML = '';
+            }
+        });
+
+            input.addEventListener('keydown', function (event) {
+                const items = suggestionsContainer.getElementsByClassName('suggestion-item');
+                if (event.key === 'ArrowDown') {
+                    currentIndex = (currentIndex + 1) % items.length;
+                    highlightItem(items, currentIndex);
+                } else if (event.key === 'ArrowUp') {
+                    currentIndex = (currentIndex - 1 + items.length) % items.length;
+                    highlightItem(items, currentIndex);
+                } else if (event.key === 'Enter' && currentIndex >= 0) {
+                    input.value = items[currentIndex].textContent;
+                    suggestionsContainer.innerHTML = '';
+                    event.preventDefault(); // Prevent form submission
+                }
+            });
+
+            document.addEventListener('click', function (event) {
+                if (!suggestionsContainer.contains(event.target) && event.target !== input) {
+                    suggestionsContainer.innerHTML = '';
+                }
+            });
+
+            document.getElementById('submit_button').addEventListener('click', function () {
+                showSpinner();
+            });
+
+            // window.onload = function () {
+            //     showSpinner();
+            //     // setTimeout(hideSpinner, 3000); // Simulate a 3-second processing time
+            // };
+        }
+
+        function highlightItem(items, index) {
+            for (let i = 0; i < items.length; i++) {
+                items[i].classList.remove('highlight');
+            }
+            if (items[index]) {
+                items[index].classList.add('highlight');
+                items[index].scrollIntoView({ block: 'nearest' });
+            }
+        }
+
+        function showSpinner() {
+            document.getElementById('spinner').style.display = 'block';
+            document.getElementById('overlay').style.display = 'block';
+        }
+
+        function hideSpinner() {
+            document.getElementById('spinner').style.display = 'none';
+            document.getElementById('overlay').style.display = 'none';
+        }
+
+        function clearSession() {
+            hideSpinner(); // Hide spinner immediately
+            fetch('/clear_session', { method: 'POST' });
+        }
+
+        window.addEventListener('beforeunload', function(event) {
+            hideSpinner(); // Ensure spinner is hidden immediately
+            clearSession();
+        });
+
+        setupAutosuggest('from_location', 'from_suggestions');
+        setupAutosuggest('to_location', 'to_suggestions');
+
+        // Handle form submission with AJAX
+        document.getElementById('trafficForm').addEventListener('submit', function (event) {
+            event.preventDefault();
+            const fromLocation = document.getElementById('from_location').value;
+            const toLocation = document.getElementById('to_location').value;
+            const email = document.getElementById('email').value;
+
+            fetch('/submit', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ from_location: fromLocation, to_location: toLocation, email: email })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    hideSpinner();
+                    console.log('Response received:', data); // Log the response for debugging
+                    if (data.result) {
+                        document.getElementById('resultContent').textContent = data.result;
+                        document.getElementById('resultModal').style.display = 'block';
+                        setTimeout(() => {
+                            document.getElementById('resultModal').style.display = 'none';
+                        }, 10000); // Close modal after 10 seconds
+                    } else {
+                        console.error('No result found in response:', data);
+                    }
+                })
+                .catch(error => {
+                    hideSpinner();
+                    console.error('Error:', error);
+                });
+        });
+
+        // Get the modal
+        const modal = document.getElementById('resultModal');
+
+        // Get the <span> element that closes the modal
+        const span = document.getElementsByClassName('close')[0];
+
+        document.getElementById('logout').addEventListener('click', function() {
+            location.href = '/login_user';
+        });
+
+        // When the user clicks anywhere outside of the modal, close it
+        window.onclick = function (event) {
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traffic Monitoring Result</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 80vh;
+            margin: 0;
+            background: url("{{ url_for('static', filename='traffic.jpg') }}") no-repeat center center fixed;
+            background-size: cover;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px 40px 20px 40px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            max-width: 700px;
+            width: calc(100% - 40px); /* Adjusting for padding */
+            margin: 20px;
+            box-sizing: border-box;
+            backdrop-filter: blur(3px);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        pre {
+            /* background: #f8f8f8; */
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            text-align: center;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        a {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            color: #007bff;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><u>Traffic Monitoring</u></h1>
+        <pre>{{ result }}</pre>
+        <a href="/">Go Back</a>
+    </div>
+</body>
+</html>
